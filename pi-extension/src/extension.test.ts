@@ -5920,3 +5920,124 @@ describe("model meta", () => {
     }
   });
 });
+
+describe("--remote-pi CLI flag gates session_start auto-start (plan/58)", () => {
+  const originalArgv = [...process.argv];
+
+  beforeEach(async () => {
+    _resetAutoInitedForTest();
+    // Force idle: earlier describes leave a live mesh/relay behind, and the
+    // off/mesh assertions below must start from a clean process state.
+    const stop = captureHandler("remote-pi stop");
+    await stop("", makeMockCtx());
+    _resetCwdLockForTest();
+  });
+
+  afterEach(async () => {
+    process.argv = [...originalArgv];
+    _resetAutoInitedForTest();
+    const stop = captureHandler("remote-pi stop");
+    await stop("", makeMockCtx());
+    _resetCwdLockForTest();
+  });
+
+  test("off: nothing auto-starts (no mesh, no relay)", async () => {
+    const cwd = mkdtempSync(join(tmpdir(), "pi-cli-off-"));
+    try {
+      process.argv = [...originalArgv, "--remote-pi", "off"];
+      const relayCountBefore = relayInstances.length;
+      const sessionStart = captureEventHandler("session_start");
+      sessionStart({ type: "session_start" }, makeMockCtx(cwd));
+      await new Promise<void>((r) => setImmediate(r));
+      expect(_hasMeshNodeForTest()).toBe(false);
+      expect(_getState()).toBe("idle");
+      expect(relayInstances.length).toBe(relayCountBefore);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  test("relay: relay starts, mesh does NOT join", async () => {
+    const cwd = mkdtempSync(join(tmpdir(), "pi-cli-relay-"));
+    try {
+      process.argv = [...originalArgv, "--remote-pi", "relay"];
+      const sessionStart = captureEventHandler("session_start");
+      sessionStart({ type: "session_start" }, makeMockCtx(cwd));
+      await vi.waitFor(() => expect(_getState()).toBe("started"));
+      expect(relayInstances.length).toBeGreaterThan(0);
+      expect(_hasMeshNodeForTest()).toBe(false);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  test("mesh (no local config): joins mesh, relay stays off", async () => {
+    const cwd = mkdtempSync(join(tmpdir(), "pi-cli-mesh-"));
+    try {
+      process.argv = [...originalArgv, "--remote-pi", "mesh"];
+      const relayCountBefore = relayInstances.length;
+      const sessionStart = captureEventHandler("session_start");
+      sessionStart({ type: "session_start" }, makeMockCtx(cwd));
+      await vi.waitFor(() => expect(_hasMeshNodeForTest()).toBe(true));
+      await new Promise<void>((r) => setImmediate(r));
+      expect(_getState()).toBe("idle");
+      expect(relayInstances.length).toBe(relayCountBefore);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  test("invalid value: warns and falls back to legacy behavior (no config → stays idle)", async () => {
+    const cwd = mkdtempSync(join(tmpdir(), "pi-cli-invalid-"));
+    try {
+      process.argv = [...originalArgv, "--remote-pi", "bogus"];
+      const ctx = makeMockCtx(cwd);
+      const sessionStart = captureEventHandler("session_start");
+      sessionStart({ type: "session_start" }, ctx);
+      await new Promise<void>((r) => setImmediate(r));
+      expect(ctx.ui.notify).toHaveBeenCalledWith(
+        expect.stringContaining("Invalid --remote-pi value"),
+        "warning",
+      );
+      expect(_hasMeshNodeForTest()).toBe(false);
+      expect(_getState()).toBe("idle");
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  test("factory registers --remote-pi as a string flag with no default (plan/58)", () => {
+    const flags: Array<[string, { type?: string; default?: unknown }]> = [];
+    const pi = {
+      on: () => undefined,
+      registerCommand: () => undefined,
+      registerTool: () => undefined, registerShortcut: () => undefined,
+      registerFlag: (name: string, opts: { type?: string; default?: unknown }) => flags.push([name, opts]),
+      getFlag: () => undefined,
+      registerMessageRenderer: () => undefined,
+      sendMessage: () => undefined, sendUserMessage: () => undefined,
+    } as unknown as ExtensionAPI;
+    (extension as ExtensionFactory)(pi);
+    const entry = flags.find(([name]) => name === "remote-pi");
+    expect(entry).toBeDefined();
+    expect(entry![1].type).toBe("string");
+    // No default: undefined = "flag not passed" → legacy config behavior.
+    expect(entry![1].default).toBeUndefined();
+  });
+
+  test("no flag: legacy config-driven behavior (no config → stays idle)", async () => {
+    const cwd = mkdtempSync(join(tmpdir(), "pi-cli-none-"));
+    try {
+      process.argv = [...originalArgv];
+      const relayCountBefore = relayInstances.length;
+      const sessionStart = captureEventHandler("session_start");
+      sessionStart({ type: "session_start" }, makeMockCtx(cwd));
+      await new Promise<void>((r) => setImmediate(r));
+      expect(_hasMeshNodeForTest()).toBe(false);
+      expect(_getState()).toBe("idle");
+      expect(relayInstances.length).toBe(relayCountBefore);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+});

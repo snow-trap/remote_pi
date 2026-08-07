@@ -192,6 +192,44 @@ It should print the effective relay URL and where it came from
 
 ---
 
+## CLI flag: `--remote-pi <mesh|relay|both|off>`
+
+Controls **what the auto-start brings up** when the Pi process boots — no
+interactive setup needed:
+
+| Flag | Auto-start at boot |
+|---|---|
+| *(not passed)* | Join local mesh; relay if `auto_start_relay` (default true) — legacy behavior |
+| `both` | Same as not passed (explicit default) |
+| `mesh` | Join local mesh only — relay stays off |
+| `relay` | Relay only (mobile app channel) — mesh is not joined |
+| `off` | Nothing auto-starts |
+
+```bash
+pi --remote-pi off
+pi --remote-pi mesh -- "local-only session"
+```
+
+Rules:
+
+- **Precedence:** CLI flag > local config (`auto_start_relay`) > default. The
+  flag is read-only — it never writes `config.json`.
+- **Auto-start only.** Manual `/remote-pi` (or `/remote-pi join` / relay
+  commands) keeps full behavior regardless of the flag — explicit user intent
+  wins.
+- Invalid values (`--remote-pi bogus`) warn and fall back to the legacy
+  config-driven behavior.
+- `pi -p` / `pi --print` never auto-starts in any mode (issue #44 — the relay
+  WS would keep the process alive forever).
+- Daemons spawned by `pi-supervisord` (which don't pass the flag) are
+  unaffected.
+
+The flag is a registered extension flag — the Pi CLI validates it: passing
+`--remote-pi` without a registered extension would fail with
+`Unknown option`. Both `--remote-pi mesh` and `--remote-pi=mesh` forms work.
+
+---
+
 ## Using `/remote-pi`
 
 The bare command is the everyday entry point:

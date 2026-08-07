@@ -1117,6 +1117,53 @@ function _getSyncLimit(): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : SYNC_LIMIT_DEFAULT;
 }
 
+// ── `--remote-pi` CLI flag (plan/58) ─────────────────────────────────────────
+// Registered via `pi.registerFlag` (string type) so the Pi CLI validates it:
+// an unregistered flag aborts with "Unknown option", a registered one lands in
+// `pi.getFlag("remote-pi")` — and stays visible in process.argv (the SDK never
+// strips it). The flag ONLY gates the session_start auto-start; manual
+// `/remote-pi` commands ignore it (explicit user intent wins).
+
+export type CliRemotePiMode = "mesh" | "relay" | "both" | "off";
+
+/** Raw `--remote-pi` value from argv (`--remote-pi mesh` or `--remote-pi=mesh`).
+ * Repeated flags: LAST occurrence wins — mirrors the Pi CLI's own
+ * `unknownFlags.set` behavior (later args overwrite earlier ones). */
+export function cliRemotePiValue(argv: string[] = process.argv): string | undefined {
+  let value: string | undefined;
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (!arg) continue;
+    if (arg === "--remote-pi") {
+      value = argv[i + 1];
+    } else if (arg.startsWith("--remote-pi=")) {
+      value = arg.slice("--remote-pi=".length);
+    }
+  }
+  return value;
+}
+
+/**
+ * Parses + validates the CLI value. `undefined` = not passed OR invalid —
+ * callers distinguish via `cliRemotePiValue` when they want to warn.
+ */
+export function resolveCliRemotePiMode(
+  argv: string[] = process.argv,
+): CliRemotePiMode | undefined {
+  const value = cliRemotePiValue(argv);
+  if (!value) return undefined;
+  switch (value) {
+    case "mesh":
+    case "relay":
+    case "both":
+    case "off":
+      return value;
+    default:
+      return undefined;
+  }
+}
+
+
 // ── Relay reconnect state ─────────────────────────────────────────────────────
 // Backoffs in ms: 1s, 2s, 5s, 10s, 30s, then stays at 30s.
 const RECONNECT_BACKOFFS_MS = [1_000, 2_000, 5_000, 10_000, 30_000];
@@ -2073,6 +2120,18 @@ const extension: ExtensionFactory = (pi: ExtensionAPI): void => {
 
   _pi = pi;
 
+  // Plan/58 — `pi --remote-pi <mesh|relay|both|off>` gates the session_start
+  // auto-start. String type, NO default: undefined = "not passed" so legacy
+  // config-driven behavior (auto_start_relay) stays untouched for existing
+  // users. The Pi CLI validates the flag is registered (else "Unknown
+  // option" abort) and surfaces the value via pi.getFlag; we ALSO read
+  // process.argv because this module may be re-evaluated before the flag
+  // runtime is rebound in some hosts.
+  pi.registerFlag("remote-pi", {
+    type: "string",
+    description: "remote-pi auto-start mode: mesh | relay | both | off",
+  });
+
   // Plan/57 — bridge @eko24ive/pi-ask clarification flows to the paired app.
   // Inert when pi-ask isn't installed (no events fire) or the SDK exposes no
   // events bus. ask_user without pi-ask doesn't exist, so this never breaks a
@@ -2391,17 +2450,65 @@ const extension: ExtensionFactory = (pi: ExtensionAPI): void => {
       const isPrintMode =
         process.argv.includes("-p") || process.argv.includes("--print");
       const cwd = isDaemon ? process.cwd() : "cwd" in ctx ? ctx.cwd : undefined;
+      // Plan/58 — `--remote-pi <mesh|relay|both|off>` overrides WHAT the
+      // auto-start brings up (flag > config > default). Only the auto-start is
+      // gated; manual `/remote-pi` keeps full behavior. Print mode dominates
+      // any mode below.
+      const cliFlagValue = cliRemotePiValue();
+      const cliMode = resolveCliRemotePiMode();
       if (
         !isPrintMode &&
         cwd &&
-        localConfigExists(cwd) &&
-        effectiveAutoStartRelay(loadLocalConfig(cwd))
+        cliMode !== "off"
       ) {
-        _autoInited = true;
         const initCtx = isDaemon
           ? ({ ui: _headlessUi(), cwd: process.cwd() } as Pick<ExtensionContext, "ui" | "cwd">)
           : ctx;
-        void _cmdRoot(initCtx);
+        if (cliMode === "relay") {
+          // Relay-only: the app channel is mesh-independent (_cmdStart needs no
+          // broker); the cross-PC bridge stays inactive without a leader broker.
+          _autoInited = true;
+          ctx.ui.notify?.("[remote-pi] --remote-pi relay: starting relay only (local mesh off)", "info");
+          void _cmdStart(initCtx);
+        } else if (cliMode === "mesh") {
+          // Mesh-only: join with the normal lock/name flow when a config exists
+          // (relay forced off inside _cmdRoot); otherwise a bare join with the
+          // default name (no wizard on session_start, ever).
+          _autoInited = true;
+          if (localConfigExists(cwd)) {
+            void _cmdRoot(initCtx, undefined, "mesh");
+          } else {
+            ctx.ui.notify?.("[remote-pi] --remote-pi mesh: joining local mesh (no relay)", "info");
+            void _cmdJoin(initCtx);
+          }
+        } else {
+          // both | undefined | invalid — legacy behavior: auto-start when the
+          // cwd's local config has auto_start_relay enabled (default true).
+          // Covers BOTH interactive sessions (previously required typing
+          // /remote-pi each session) AND headless daemons. We init here — on
+          // session_start — NOT via a factory-return setTimeout(0): the SDK
+          // only calls bindCore() (which replaces the throwing action-method
+          // stubs like pi.sendMessage) right before emitting session_start, so
+          // a setTimeout(0) from the factory raced it and crashed with
+          // "Extension runtime not initialized" inside _emitRelayState ->
+          // sendMessage. session_start fires strictly AFTER bindCore
+          // (agent-session bindExtensions), so pi.sendMessage is a real
+          // function here. Guarded by _autoInited so session replacements
+          // re-init only via the _disposed path above. Daemon mode has no
+          // interactive UI → use the headless ctx; interactive sessions use
+          // the real session_start ctx (has ui.notify + dialogs for the
+          // first-run wizard).
+          if (
+            cliFlagValue !== undefined &&
+            cliMode === undefined
+          ) {
+            ctx.ui.notify?.(`[remote-pi] Invalid --remote-pi value "${cliFlagValue}" (mesh|relay|both|off). Falling back to config.`, "warning");
+          }
+          if (localConfigExists(cwd) && effectiveAutoStartRelay(loadLocalConfig(cwd))) {
+            _autoInited = true;
+            void _cmdRoot(initCtx);
+          }
+        }
       }
     }
   });
@@ -2671,6 +2778,7 @@ async function _cmdPeers(ctx: Pick<ExtensionContext, "ui">): Promise<void> {
 async function _cmdRoot(
   ctx: Pick<ExtensionContext, "ui" | "cwd">,
   restartAuthority?: RootRestartAuthority,
+  cliAutoMode?: CliRemotePiMode,
 ): Promise<void> {
   const rootLifecycleGeneration = restartAuthority?.rootLifecycleGeneration
     ?? _rootLifecycleGeneration;
@@ -2694,7 +2802,7 @@ async function _cmdRoot(
 
   if (!_isCurrentRootLifecycle(rootLifecycleGeneration)) return;
 
-  const run = _cmdRootInner(ctx, rootLifecycleGeneration);
+  const run = _cmdRootInner(ctx, rootLifecycleGeneration, cliAutoMode);
   _cmdRootInFlight = run;
   try {
     await run;
@@ -2706,6 +2814,7 @@ async function _cmdRoot(
 async function _cmdRootInner(
   ctx: Pick<ExtensionContext, "ui" | "cwd">,
   rootLifecycleGeneration: number,
+  cliAutoMode?: CliRemotePiMode,
 ): Promise<void> {
   // A root retains its startup epoch through every pre-candidate await. This is
   // stronger than `_disposed`, which a same-module session_start intentionally
@@ -2783,14 +2892,16 @@ async function _cmdRootInner(
   // relay is the only thing gated by auto_start_relay. So auto_start_relay:false
   // now means "local mesh, no relay" (matching the first-time/wizard path and
   // the field's documented intent) — previously a false flag skipped the mesh
-  // join entirely, leaving the agent (incl. daemons) fully idle.
+  // join entirely, leaving the agent (incl. daemons) fully idle. Plan/58:
+  // `--remote-pi mesh` forces the relay off here too (cliAutoMode is only set
+  // by the session_start auto-start; manual /remote-pi never passes it).
   const config = loadLocalConfig(cwd);
   if (!_isCurrentRootLifecycle(rootLifecycleGeneration)) return;
   if (!_meshNode) await _cmdJoin(ctx);
   // `_cmdJoin` returns void on a canceled/failed join, so recheck both the
   // root lifecycle and publication before bringing the Relay up.
   if (!_isCurrentRootLifecycle(rootLifecycleGeneration) || !_meshNode) return;
-  if (effectiveAutoStartRelay(config) && _state === "idle") await _cmdStart(ctx);
+  if (effectiveAutoStartRelay(config) && cliAutoMode !== "mesh" && _state === "idle") await _cmdStart(ctx);
   if (!_isCurrentRootLifecycle(rootLifecycleGeneration) || !_meshNode) return;
   _cmdStatus(ctx);
 }
