@@ -1,0 +1,30 @@
+{
+  "name": "remote-pi",
+  "version": "0.6.0",
+  "description": "snow-trap fork of remote-pi — pi-extension wrapper so pi can install from git",
+  "type": "module",
+  "main": "pi-extension/dist/index.js",
+  "bin": {
+    "remote-pi": "pi-extension/dist/index.js",
+    "pi-supervisord": "pi-extension/dist/bin/supervisord.js"
+  },
+  "pi": {
+    "extensions": [
+      "./pi-extension/dist"
+    ],
+    "image": "https://raw.githubusercontent.com/snow-trap/remote_pi/main/branding/banner.png"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "^0.79.10",
+    "@earendil-works/pi-tui": "^0.79.10",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@napi-rs/keyring": "^1.3.0",
+    "@noble/ed25519": "^3.1.0",
+    "croner": "^10.0.1",
+    "qrcode-terminal": "^0.12.0",
+    "typebox": "^1.1.38",
+    "ws": "^8.21.0",
+    "zod": "^4.4.3"
+  },
+  "license": "MIT"
+}
