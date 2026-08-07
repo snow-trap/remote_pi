@@ -14,7 +14,18 @@ const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
  */
 export const kDefaultRelayUrl = "https://relay-rp1.jacobmoura.work";
 
-export type RemotePiConfig = { relay?: string };
+export type RemotePiConfig = {
+  relay?: string;
+  /**
+   * Suppress pure-data custom messages (`remote-pi:relay-state`,
+   * `remote-pi:name-assigned`, `remote-pi:paired`) that exist only for RPC
+   * clients (Cockpit). `display:false` keeps them out of the TUI but they are
+   * still persisted as CustomMessageEntry and injected into the LLM context on
+   * every turn (issue #105). Defaults to `true` — they are cut unless
+   * explicitly re-enabled with `false`.
+   */
+  suppress_data_events?: boolean;
+};
 
 export function loadConfig(): RemotePiConfig {
   try {

@@ -333,6 +333,17 @@ order (highest precedence first):
 2. `~/.pi/remote/config.json`
 3. The built-in default (`https://relay-rp1.jacobmoura.work`)
 
+The same file accepts `suppress_data_events` (default `true`): the
+Cockpit-only pure-data events (`remote-pi:relay-state`, `remote-pi:name-assigned`,
+`remote-pi:paired`) are **cut** because pi persists them as `CustomMessageEntry`
+and feeds them into the LLM context on every turn — `display:false` only hides
+them from the TUI (issue #105). Set it to `false` to restore the old
+Cockpit-indicator behavior.
+
+```json
+{ "relay": "https://relay.example.tld", "suppress_data_events": false }
+```
+
 Verify the active URL and its source with:
 
 ```text
