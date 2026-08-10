@@ -225,7 +225,12 @@ class _CockpitPageState extends State<CockpitPage> {
   /// `SettingsController` app-scoped, então a página empurra o valor.
   void _syncNotifications() {
     _vm.setNotificationsEnabled(_settings!.settings.notificationsEnabled);
-    _vm.setSoundEnabled(_settings!.settings.soundEnabled);
+    _vm.setSoundPrefs(
+      events: _settings!.settings.soundEvents,
+      overrides: _settings!.settings.soundOverrides,
+      onActiveTab: _settings!.settings.soundOnActiveTab,
+      volume: _settings!.settings.soundVolume,
+    );
     // Plano 50: perfil de terminal padrão do `+` — mesmo motivo (app-scoped →
     // VM page-scoped). Vale pra abas criadas daqui pra frente.
     _vm.setDefaultTerminalProfileId(
@@ -501,7 +506,20 @@ class _CockpitPageState extends State<CockpitPage> {
       namespace: namespace,
       fork: true,
       hasPostCheckout: hasHook,
-      onCreate: (name) => vm.forkWorktree(base.id, name),
+      onCreate:
+          (
+            name, {
+            baseRef,
+            copyIgnored = false,
+            copyUntracked = false,
+            fetchRemote = true,
+          }) => vm.forkWorktree(
+            base.id,
+            name,
+            copyIgnored: copyIgnored,
+            copyUntracked: copyUntracked,
+            fetchRemote: fetchRemote,
+          ),
     );
   }
 
@@ -548,7 +566,22 @@ class _CockpitPageState extends State<CockpitPage> {
       rootName: _gitOpLabel(root, rootPath),
       namespace: namespace,
       hasPostCheckout: hasHook,
-      onCreate: (name) => vm.createWorktree(root.id, name, rootPath: rootPath),
+      onCreate:
+          (
+            name, {
+            baseRef,
+            copyIgnored = false,
+            copyUntracked = false,
+            fetchRemote = true,
+          }) => vm.createWorktree(
+            root.id,
+            name,
+            rootPath: rootPath,
+            baseRef: baseRef,
+            copyIgnored: copyIgnored,
+            copyUntracked: copyUntracked,
+            fetchRemote: fetchRemote,
+          ),
     );
   }
 

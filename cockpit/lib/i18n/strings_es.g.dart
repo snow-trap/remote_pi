@@ -346,9 +346,22 @@ class _Translations$cockpit$worktreeCreateDialog$es extends Translations$cockpit
 	@override String get errorReserved => 'Posición reservada (no empieces con "-"/"." ni termines con ".lock").';
 	@override String get errorDuplicateBranch => 'Ya existe una branch con ese nombre.';
 	@override String get errorDuplicateWorktree => 'Ya existe un worktree con ese nombre.';
+	@override String errorBranchHierarchyConflict({required Object target, required Object existing}) => 'No se puede crear la branch \'${target}\' porque entra en conflicto con la branch \'${existing}\' ya existente.';
+	@override String get errorBranchHierarchicalConflictGeneral => 'Ya existe una branch con una jerarquía conflictiva.';
 	@override String get fork => 'Fork';
 	@override String get postCheckoutHint => 'Este repositorio tiene un hook post-checkout.';
 	@override String get running => 'Ejecutando…';
+	@override String get advancedSettings => 'Configuración Avanzada';
+	@override String get copyIgnored => 'Copiar archivos ignorados (.gitignore)';
+	@override String get copyIgnoredDesc => 'Copia los archivos ignorados por .gitignore (ej. .env, claves locales) al nuevo worktree.';
+	@override String get copyUntracked => 'Copiar archivos no rastreados';
+	@override String get copyUntrackedDesc => 'Copia los archivos nuevos o modificados que aún no se han agregado al stage.';
+	@override String get baseBranch => 'Branch base';
+	@override String get baseBranchDesc => 'La branch desde la cual se creará el nuevo worktree y branch.';
+	@override String get fetchRemote => 'Sincronizar branch remota (fetch)';
+	@override String get fetchRemoteDesc => 'Ejecuta git fetch para garantizar que la branch base esté confirmada antes de crear el worktree.';
+	@override String get searchBranch => 'Buscar branch...';
+	@override String get back => 'Atrás';
 }
 
 // Path: cockpit.subfolderDialog
@@ -999,6 +1012,8 @@ class _Translations$cockpit$notifications$es extends Translations$cockpit$notifi
 	// Translations
 	@override String get agentFinished => 'El agente terminó';
 	@override String get open => 'Abrir';
+	@override String get agentNeedsAction => 'El agente necesita tu acción';
+	@override String get agentCrashed => 'El agente se detuvo inesperadamente';
 }
 
 // Path: cockpit.terminal
@@ -1297,7 +1312,17 @@ class _Translations$settings$page$appearance$es extends Translations$settings$pa
 	@override String get codeFontDesc => 'Código y diffs. Vacío = predeterminado del sistema.';
 	@override String get codeSizeTitle => 'Tamaño del código';
 	@override String get terminalFontTitle => 'Fuente del terminal';
-	@override String get terminalFontDesc => 'Usa el tamaño del código. Vacío = predeterminado del sistema.';
+	@override String get terminalFontDesc => 'Solo la terminal. Vacío = predeterminado del sistema.';
+	@override String get terminalSizeTitle => 'Tamaño de la terminal';
+	@override String get terminalSizeDesc => 'Apagado = sigue el tamaño del código.';
+	@override String get terminalSizeInherit => 'Seguir el código';
+	@override String get terminalWeightTitle => 'Grosor de la terminal';
+	@override String get terminalWeightDesc => 'Las pantallas de baja densidad engrosan los trazos. El automático los afina solo ahí y no toca la Retina.';
+	@override String get terminalWeightAuto => 'Automático (según la pantalla)';
+	@override String get terminalWeightLight => 'Fino';
+	@override String get terminalWeightNormal => 'Normal';
+	@override String get terminalWeightMedium => 'Medio';
+	@override String get terminalWeightSemiBold => 'Seminegrita';
 	@override String get sectionConversation => 'Conversación';
 	@override String get pinUserMessageTitle => 'Fijar mensaje del usuario';
 	@override String get pinUserMessageDesc => 'La pregunta permanece fija arriba mientras la respuesta se desplaza.';
@@ -1309,6 +1334,15 @@ class _Translations$settings$page$appearance$es extends Translations$settings$pa
 	@override String themeImported({required Object name}) => 'Tema "${name}" importado.';
 	@override String get themeExported => 'Tema guardado.';
 	@override String get themeDeleted => 'Tema eliminado.';
+	@override String get fontPickerTitle => 'Elegir una fuente';
+	@override String get fontPickerSearch => 'Buscar fuentes';
+	@override String get fontPickerEmpty => 'No hay ninguna fuente coincidente en esta máquina.';
+	@override String get fontPickerBundled => 'incluida';
+	@override String get fontPickerCustom => '¿No está en la lista? Escribe el nombre exacto de la familia.';
+	@override String get fontPickerCustomHint => 'Nombre de la familia';
+	@override String get fontPickerUse => 'Usar';
+	@override String get fontPickerDefault => 'Predeterminada';
+	@override String get fontMissing => 'No se encontró en esta máquina — usando el respaldo.';
 }
 
 // Path: settings.page.notifications
@@ -1326,8 +1360,20 @@ class _Translations$settings$page$notifications$es extends Translations$settings
 	@override String get notGrantedDesc => 'macOS aún no ha concedido acceso a las notificaciones.';
 	@override String get granted => 'Concedido';
 	@override String get requestPermission => 'Solicitar permiso';
-	@override String get playSoundTitle => 'Reproducir sonido al finalizar';
-	@override String get playSoundDesc => 'Reproduce un sonido breve cuando un turno termina y la ventana está enfocada (en cualquier pestaña o workspace).';
+	@override String get soundsTitle => 'Sonidos';
+	@override String get soundVolumeTitle => 'Volumen';
+	@override String get soundTurnDone => 'Turno completado';
+	@override String get soundTurnDoneDesc => 'Un agente terminó su turno.';
+	@override String get soundActionRequired => 'Acción requerida';
+	@override String get soundActionRequiredDesc => 'Un agente está esperando tu aprobación o respuesta.';
+	@override String get soundAgentError => 'Error del agente';
+	@override String get soundAgentErrorDesc => 'El proceso de un agente se detuvo inesperadamente.';
+	@override String get soundDefault => 'Predeterminado';
+	@override String soundCustom({required Object name}) => 'Personalizado: ${name}';
+	@override String get soundChooseFile => 'Elegir archivo';
+	@override String get soundReset => 'Volver al predeterminado';
+	@override String get soundOnActiveTab => 'Reproducir también con la pestaña activa';
+	@override String get soundPreview => 'Escuchar';
 }
 
 // Path: settings.page.shortcuts
@@ -1629,9 +1675,22 @@ extension on TranslationsEs {
 			'cockpit.worktreeCreateDialog.errorReserved' => 'Posición reservada (no empieces con "-"/"." ni termines con ".lock").',
 			'cockpit.worktreeCreateDialog.errorDuplicateBranch' => 'Ya existe una branch con ese nombre.',
 			'cockpit.worktreeCreateDialog.errorDuplicateWorktree' => 'Ya existe un worktree con ese nombre.',
+			'cockpit.worktreeCreateDialog.errorBranchHierarchyConflict' => ({required Object target, required Object existing}) => 'No se puede crear la branch \'${target}\' porque entra en conflicto con la branch \'${existing}\' ya existente.',
+			'cockpit.worktreeCreateDialog.errorBranchHierarchicalConflictGeneral' => 'Ya existe una branch con una jerarquía conflictiva.',
 			'cockpit.worktreeCreateDialog.fork' => 'Fork',
 			'cockpit.worktreeCreateDialog.postCheckoutHint' => 'Este repositorio tiene un hook post-checkout.',
 			'cockpit.worktreeCreateDialog.running' => 'Ejecutando…',
+			'cockpit.worktreeCreateDialog.advancedSettings' => 'Configuración Avanzada',
+			'cockpit.worktreeCreateDialog.copyIgnored' => 'Copiar archivos ignorados (.gitignore)',
+			'cockpit.worktreeCreateDialog.copyIgnoredDesc' => 'Copia los archivos ignorados por .gitignore (ej. .env, claves locales) al nuevo worktree.',
+			'cockpit.worktreeCreateDialog.copyUntracked' => 'Copiar archivos no rastreados',
+			'cockpit.worktreeCreateDialog.copyUntrackedDesc' => 'Copia los archivos nuevos o modificados que aún no se han agregado al stage.',
+			'cockpit.worktreeCreateDialog.baseBranch' => 'Branch base',
+			'cockpit.worktreeCreateDialog.baseBranchDesc' => 'La branch desde la cual se creará el nuevo worktree y branch.',
+			'cockpit.worktreeCreateDialog.fetchRemote' => 'Sincronizar branch remota (fetch)',
+			'cockpit.worktreeCreateDialog.fetchRemoteDesc' => 'Ejecuta git fetch para garantizar que la branch base esté confirmada antes de crear el worktree.',
+			'cockpit.worktreeCreateDialog.searchBranch' => 'Buscar branch...',
+			'cockpit.worktreeCreateDialog.back' => 'Atrás',
 			'cockpit.subfolderDialog.title' => '¿Dónde trabajar?',
 			'cockpit.subfolderDialog.empty' => 'No hay subcarpetas aquí.',
 			'cockpit.subfolderDialog.useRoot' => ({required Object project}) => 'Usar la raíz de ${project}',
@@ -2018,6 +2077,8 @@ extension on TranslationsEs {
 			'cockpit.tasks.quit' => 'Salir',
 			'cockpit.notifications.agentFinished' => 'El agente terminó',
 			'cockpit.notifications.open' => 'Abrir',
+			'cockpit.notifications.agentNeedsAction' => 'El agente necesita tu acción',
+			'cockpit.notifications.agentCrashed' => 'El agente se detuvo inesperadamente',
 			'cockpit.terminal.cwdFallbackWarning' => ({required Object requested, required Object path}) => 'Aviso: la carpeta "${requested}" no existe. Esta terminal se abrió en "${path}".',
 			'settings.language.title' => 'Idioma',
 			'settings.language.system' => 'Sistema',
@@ -2025,6 +2086,8 @@ extension on TranslationsEs {
 			'settings.language.portugueseBr' => 'Portugués (BR)',
 			'settings.language.spanish' => 'Español',
 			'settings.revokeDialog.deviceRemoved' => 'Dispositivo eliminado.',
+			_ => null,
+		} ?? switch (path) {
 			'settings.revokeDialog.failedToRevoke' => 'No se pudo revocar el dispositivo.',
 			'settings.revokeDialog.revoking' => 'Revocando…',
 			'settings.revokeDialog.revokingDevice' => ({required Object name}) => 'Revocando ${name}…',
@@ -2040,8 +2103,6 @@ extension on TranslationsEs {
 			'settings.pairingDialog.pairingFailed' => 'Fallo en la vinculación.',
 			'settings.pairingDialog.tryAgain' => 'Intentar de nuevo',
 			'settings.pairingDialog.copied' => '¡Copiado!',
-			_ => null,
-		} ?? switch (path) {
 			'settings.pairingDialog.copyData' => 'Copiar datos',
 			'settings.page.header.back' => 'Atrás',
 			'settings.page.header.title' => 'Configuración',
@@ -2126,7 +2187,17 @@ extension on TranslationsEs {
 			'settings.page.appearance.codeFontDesc' => 'Código y diffs. Vacío = predeterminado del sistema.',
 			'settings.page.appearance.codeSizeTitle' => 'Tamaño del código',
 			'settings.page.appearance.terminalFontTitle' => 'Fuente del terminal',
-			'settings.page.appearance.terminalFontDesc' => 'Usa el tamaño del código. Vacío = predeterminado del sistema.',
+			'settings.page.appearance.terminalFontDesc' => 'Solo la terminal. Vacío = predeterminado del sistema.',
+			'settings.page.appearance.terminalSizeTitle' => 'Tamaño de la terminal',
+			'settings.page.appearance.terminalSizeDesc' => 'Apagado = sigue el tamaño del código.',
+			'settings.page.appearance.terminalSizeInherit' => 'Seguir el código',
+			'settings.page.appearance.terminalWeightTitle' => 'Grosor de la terminal',
+			'settings.page.appearance.terminalWeightDesc' => 'Las pantallas de baja densidad engrosan los trazos. El automático los afina solo ahí y no toca la Retina.',
+			'settings.page.appearance.terminalWeightAuto' => 'Automático (según la pantalla)',
+			'settings.page.appearance.terminalWeightLight' => 'Fino',
+			'settings.page.appearance.terminalWeightNormal' => 'Normal',
+			'settings.page.appearance.terminalWeightMedium' => 'Medio',
+			'settings.page.appearance.terminalWeightSemiBold' => 'Seminegrita',
 			'settings.page.appearance.sectionConversation' => 'Conversación',
 			'settings.page.appearance.pinUserMessageTitle' => 'Fijar mensaje del usuario',
 			'settings.page.appearance.pinUserMessageDesc' => 'La pregunta permanece fija arriba mientras la respuesta se desplaza.',
@@ -2138,6 +2209,15 @@ extension on TranslationsEs {
 			'settings.page.appearance.themeImported' => ({required Object name}) => 'Tema "${name}" importado.',
 			'settings.page.appearance.themeExported' => 'Tema guardado.',
 			'settings.page.appearance.themeDeleted' => 'Tema eliminado.',
+			'settings.page.appearance.fontPickerTitle' => 'Elegir una fuente',
+			'settings.page.appearance.fontPickerSearch' => 'Buscar fuentes',
+			'settings.page.appearance.fontPickerEmpty' => 'No hay ninguna fuente coincidente en esta máquina.',
+			'settings.page.appearance.fontPickerBundled' => 'incluida',
+			'settings.page.appearance.fontPickerCustom' => '¿No está en la lista? Escribe el nombre exacto de la familia.',
+			'settings.page.appearance.fontPickerCustomHint' => 'Nombre de la familia',
+			'settings.page.appearance.fontPickerUse' => 'Usar',
+			'settings.page.appearance.fontPickerDefault' => 'Predeterminada',
+			'settings.page.appearance.fontMissing' => 'No se encontró en esta máquina — usando el respaldo.',
 			'settings.page.notifications.sectionTitle' => 'Notificaciones',
 			'settings.page.notifications.enableTitle' => 'Activar notificaciones',
 			'settings.page.notifications.enableDesc' => 'Avisarme cuando un agente termine un turno y la ventana no esté enfocada.',
@@ -2146,8 +2226,20 @@ extension on TranslationsEs {
 			'settings.page.notifications.notGrantedDesc' => 'macOS aún no ha concedido acceso a las notificaciones.',
 			'settings.page.notifications.granted' => 'Concedido',
 			'settings.page.notifications.requestPermission' => 'Solicitar permiso',
-			'settings.page.notifications.playSoundTitle' => 'Reproducir sonido al finalizar',
-			'settings.page.notifications.playSoundDesc' => 'Reproduce un sonido breve cuando un turno termina y la ventana está enfocada (en cualquier pestaña o workspace).',
+			'settings.page.notifications.soundsTitle' => 'Sonidos',
+			'settings.page.notifications.soundVolumeTitle' => 'Volumen',
+			'settings.page.notifications.soundTurnDone' => 'Turno completado',
+			'settings.page.notifications.soundTurnDoneDesc' => 'Un agente terminó su turno.',
+			'settings.page.notifications.soundActionRequired' => 'Acción requerida',
+			'settings.page.notifications.soundActionRequiredDesc' => 'Un agente está esperando tu aprobación o respuesta.',
+			'settings.page.notifications.soundAgentError' => 'Error del agente',
+			'settings.page.notifications.soundAgentErrorDesc' => 'El proceso de un agente se detuvo inesperadamente.',
+			'settings.page.notifications.soundDefault' => 'Predeterminado',
+			'settings.page.notifications.soundCustom' => ({required Object name}) => 'Personalizado: ${name}',
+			'settings.page.notifications.soundChooseFile' => 'Elegir archivo',
+			'settings.page.notifications.soundReset' => 'Volver al predeterminado',
+			'settings.page.notifications.soundOnActiveTab' => 'Reproducir también con la pestaña activa',
+			'settings.page.notifications.soundPreview' => 'Escuchar',
 			'settings.page.shortcuts.notCustomizable' => 'Los atajos de teclado aún no se pueden personalizar.',
 			'settings.page.languages.sectionFormatting' => 'FORMATO',
 			'settings.page.languages.formatOnSaveTitle' => 'Formatear al guardar',

@@ -40,6 +40,11 @@ class AgentSession extends PaneItem {
   /// notificar o workspace.
   VoidCallback? onTurnEnd;
 
+  /// Disparado quando o processo morre **sem ser pedido** (`RpcProcessExit`).
+  /// Kills intencionais (restart/fechar aba) cancelam o sub de eventos antes,
+  /// então nunca chegam aqui. A VM usa pra notificar o crash (som/banner).
+  VoidCallback? onCrashed;
+
   /// Disparado quando o usuário altera [preferredModelId] ou [preferredThinking].
   /// A VM usa pra agendar um save imediato — sem depender do fim de turno.
   VoidCallback? onPreferenceChanged;
@@ -548,6 +553,7 @@ class AgentSession extends PaneItem {
         _status = AgentStatus.crashed;
         _resetOpenBuffers();
         _addInfo('process exited (code=$code)', isError: code != 0);
+        onCrashed?.call();
       case RpcNotice(:final message, :final level):
         _add(NoticeEntry(message, level.index));
       case RpcUiRequest(
