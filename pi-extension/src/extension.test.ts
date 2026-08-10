@@ -136,6 +136,11 @@ vi.mock("./config.js", async (importOriginal) => {
     ...orig,
     loadConfig: vi.fn().mockImplementation(() => ({
       ...(_savedRelayUrl ? { relay: _savedRelayUrl } : {}),
+      // Pure-data events (relay-state/name-assigned/paired) are suppressed by
+      // default; tests set this env to re-enable the old behavior.
+      ...(process.env["REMOTE_PI_SUPPRESS_DATA_EVENTS"] === "false"
+        ? { suppress_data_events: false }
+        : {}),
     })),
     saveConfig: vi.fn().mockImplementation((patch: { relay?: string }) => {
       _setRelayCalls.push(patch.relay ?? "");
@@ -4362,7 +4367,9 @@ describe("remote-pi:name-assigned event", () => {
   // Contract for the Cockpit: on join the extension emits a pure-data
   // (display:false) custom message carrying the requested + effective mesh
   // name, so the client can rename the agent when the broker appended a `#N`.
-  test("join emits remote-pi:name-assigned with requested + assigned + changed", async () => {
+  // The event is a Cockpit-only pure-data message that would leak into the
+  // LLM context, so it is suppressed unless `suppress_data_events: false`.
+  test("join suppresses remote-pi:name-assigned by default (pure-data → LLM-context leak)", async () => {
     const sendMessage = vi.fn();
     const spyPi = {
       on: () => undefined, registerCommand: () => undefined,
@@ -4384,12 +4391,42 @@ describe("remote-pi:name-assigned event", () => {
     const ev = sendMessage.mock.calls
       .map((c) => c[0] as { customType?: string; display?: boolean; details?: Record<string, unknown> })
       .find((m) => m?.customType === "remote-pi:name-assigned");
-    expect(ev).toBeDefined();
-    expect(ev!.display).toBe(false);
-    expect(ev!.details).toMatchObject({ changed: false });
-    expect(typeof ev!.details!["requested"]).toBe("string");
-    // No collision in this isolated broker → assigned === requested.
-    expect(ev!.details!["assigned"]).toBe(ev!.details!["requested"]);
+    expect(ev).toBeUndefined();
+  });
+
+  test("join emits remote-pi:name-assigned with requested + assigned + changed when suppress_data_events=false", async () => {
+    process.env["REMOTE_PI_SUPPRESS_DATA_EVENTS"] = "false";
+    try {
+      const sendMessage = vi.fn();
+      const spyPi = {
+        on: () => undefined, registerCommand: () => undefined,
+        registerTool: () => undefined, registerShortcut: () => undefined,
+        registerFlag: () => undefined, getFlag: () => undefined,
+        registerMessageRenderer: () => undefined,
+        sendMessage, sendUserMessage: () => undefined,
+      } as unknown as ExtensionAPI;
+      captureHandler("remote-pi");   // factory side-effects (matches other connect tests)
+      _setPiForTest(spyPi);          // …then route sendMessage through the spy
+      expect(_hasMeshNodeForTest()).toBe(false);
+
+      const ctx = makeMockCtx(
+        `/tmp/remote-pi-name-assigned-${process.pid}-${Date.now()}`,
+      );
+      await _connectForTest(ctx);
+      expect(_hasMeshNodeForTest()).toBe(true); // join succeeded → emit ran
+
+      const ev = sendMessage.mock.calls
+        .map((c) => c[0] as { customType?: string; display?: boolean; details?: Record<string, unknown> })
+        .find((m) => m?.customType === "remote-pi:name-assigned");
+      expect(ev).toBeDefined();
+      expect(ev!.display).toBe(false);
+      expect(ev!.details).toMatchObject({ changed: false });
+      expect(typeof ev!.details!["requested"]).toBe("string");
+      // No collision in this isolated broker → assigned === requested.
+      expect(ev!.details!["assigned"]).toBe(ev!.details!["requested"]);
+    } finally {
+      delete process.env["REMOTE_PI_SUPPRESS_DATA_EVENTS"];
+    }
   });
 });
 
@@ -4508,19 +4545,25 @@ describe("relay control channel + relay-state event", () => {
     expect(_hasMeshNodeForTest()).toBe(true);
 
     sendMessage.mockClear();
-    await _handleControl("rename:Renamed");
+    process.env["REMOTE_PI_SUPPRESS_DATA_EVENTS"] = "false";
+    try {
+      await _handleControl("rename:Renamed");
 
-    // The mesh node + relay survive (no process restart); relay back up.
-    expect(_hasMeshNodeForTest()).toBe(true);
-    expect(_getState()).toBe("started");
-    // Cockpit is told the new effective name via remote-pi:name-assigned.
-    const ev = sendMessage.mock.calls
-      .map((c) => c[0] as { customType?: string; display?: boolean; details?: Record<string, unknown> })
-      .reverse()
-      .find((m) => m?.customType === "remote-pi:name-assigned");
-    expect(ev).toBeDefined();
-    expect(ev!.display).toBe(false);
-    expect(ev!.details).toMatchObject({ requested: "Renamed", assigned: "Renamed", changed: false });
+      // The mesh node + relay survive (no process restart); relay back up.
+      expect(_hasMeshNodeForTest()).toBe(true);
+      expect(_getState()).toBe("started");
+      // Cockpit is told the new effective name via remote-pi:name-assigned
+      // (re-enabled here via suppress_data_events=false; default is suppressed).
+      const ev = sendMessage.mock.calls
+        .map((c) => c[0] as { customType?: string; display?: boolean; details?: Record<string, unknown> })
+        .reverse()
+        .find((m) => m?.customType === "remote-pi:name-assigned");
+      expect(ev).toBeDefined();
+      expect(ev!.display).toBe(false);
+      expect(ev!.details).toMatchObject({ requested: "Renamed", assigned: "Renamed", changed: false });
+    } finally {
+      delete process.env["REMOTE_PI_SUPPRESS_DATA_EVENTS"];
+    }
 
     // Clean up: rename churns the real UDS broker (leave+rejoin) and leaves the
     // mesh/relay live — tear down so it can't leak into later tests (an orphaned

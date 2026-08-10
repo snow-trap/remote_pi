@@ -115,6 +115,7 @@ import { spawnSync } from "node:child_process";
 import { hostname, tmpdir } from "node:os";
 import {
   kDefaultRelayUrl,
+  loadConfig,
   resolveRelayUrl,
   saveConfig,
   isValidRelayUrl,
@@ -1556,6 +1557,20 @@ async function _attemptReconnect(
 
 // ── Relay state event + transparent control channel (Cockpit toggle) ─────────
 
+/**
+ * Pure-data events (`remote-pi:relay-state`, `remote-pi:name-assigned`,
+ * `remote-pi:paired`) are emitted only for RPC clients (Cockpit). They are
+ * marked `display:false` so the TUI hides them, but that does NOT keep them
+ * out of the LLM context: pi persists them as CustomMessageEntry and injects
+ * them into the model's message list on every turn (issue #105), where they
+ * read as user chatter ("Relay connected", "Mesh name reassigned: …") and
+ * burn context budget. Cut them by default; set `suppress_data_events: false`
+ * in `~/.pi/remote/config.json` to restore the old Cockpit-only behavior.
+ */
+function _dataEventsEnabled(): boolean {
+  return loadConfig().suppress_data_events === false;
+}
+
 /** Current relay connectivity, derived from `_state` + `_relay`. */
 function _relayStatus(): RelayConnectivity {
   if (_getState() === "idle") return "disconnected";
@@ -1567,8 +1582,15 @@ function _relayStatus(): RelayConnectivity {
  * can render a relay on/off indicator. Pure data (`display:false`) — never
  * shown in the transcript. De-duped on the connectivity value; pass
  * `force=true` to answer an explicit `relay:status` query regardless.
+ *
+ * Auto-emissions (connect/disconnect/reconnecting) are suppressed by default:
+ * they would leak into the LLM context on every turn with zero value for the
+ * user or the agent (see `_dataEventsEnabled`). Explicit control-channel
+ * queries (`relay:on/off/toggle/status`) still respond — those are user
+ * actions, not background telemetry.
  */
 function _emitRelayState(force = false): void {
+  if (!force && !_dataEventsEnabled()) return;
   const status = _relayStatus();
   if (!force && status === _lastRelayStatus) return;
   _lastRelayStatus = status;
@@ -1705,6 +1727,8 @@ async function _renameAgent(newName: string): Promise<void> {
 
   if (wasStarted && !_disposed) await _cmdStart(ctx);  // relay back up → roomIdFor(cwd, assigned)
 
+  // Cockpit-only pure-data event — suppressed by default (issue #105).
+  if (!_dataEventsEnabled()) return;
   _pi?.sendMessage({
     customType: "remote-pi:name-assigned",
     content: assigned === newName
@@ -1989,6 +2013,8 @@ async function _handlePairRequest(
   // Notify local RPC clients (e.g. Cockpit) that pairing completed, so they can
   // close the QR screen and show the new device. Pure data event (display:false)
   // — still emitted to the RPC stdout via the session stream.
+  // Cockpit-only pure-data event — suppressed by default (issue #105).
+  if (!_dataEventsEnabled()) return;
   _pi?.sendMessage({
     customType: "remote-pi:paired",
     content: `Paired with ${inner.device_name}`,
@@ -4171,14 +4197,17 @@ async function _cmdJoin(ctx: Pick<ExtensionContext, "ui" | "cwd">): Promise<void
     // accident and causes cross-folder name ping-pong across restarts. The clean
     // name (wizard / explicit `agent_name`) already lives in config or re-derives
     // from `basename(cwd)`; the event above carries the live `#N` for the UI.
-    _pi?.sendMessage({
-      customType: "remote-pi:name-assigned",
-      content: assigned === requestedName
-        ? `Mesh name: ${assigned}`
-        : `Mesh name reassigned: "${requestedName}" → "${assigned}" (collision)`,
-      details: { requested: requestedName, assigned, changed: assigned !== requestedName },
-      display: false,
-    });
+    // Cockpit-only pure-data event — suppressed by default (issue #105).
+    if (_dataEventsEnabled()) {
+      _pi?.sendMessage({
+        customType: "remote-pi:name-assigned",
+        content: assigned === requestedName
+          ? `Mesh name: ${assigned}`
+          : `Mesh name reassigned: "${requestedName}" → "${assigned}" (collision)`,
+        details: { requested: requestedName, assigned, changed: assigned !== requestedName },
+        display: false,
+      });
+    }
     ctx.ui.notify(
       `[remote-pi] Joined local mesh as "${assigned}" (${peer.currentRole()})`,
       "info",
