@@ -118,6 +118,16 @@ export declare function _getPendingSteerIdsForTest(text: string): string[];
 /** Test-only: override the bound AgentSession so a spy can capture the
  *  content handed to `sendUserMessage` (plan/30 multimodal ingest). */
 export declare function _setPiForTest(pi: unknown): void;
+export type CliRemotePiMode = "mesh" | "relay" | "both" | "off";
+/** Raw `--remote-pi` value from argv (`--remote-pi mesh` or `--remote-pi=mesh`).
+ * Repeated flags: LAST occurrence wins — mirrors the Pi CLI's own
+ * `unknownFlags.set` behavior (later args overwrite earlier ones). */
+export declare function cliRemotePiValue(argv?: string[]): string | undefined;
+/**
+ * Parses + validates the CLI value. `undefined` = not passed OR invalid —
+ * callers distinguish via `cliRemotePiValue` when they want to warn.
+ */
+export declare function resolveCliRemotePiMode(argv?: string[]): CliRemotePiMode | undefined;
 /** Test-only: exposes pending reconnect timer state. */
 export declare function _hasPendingReconnect(): boolean;
 /**
