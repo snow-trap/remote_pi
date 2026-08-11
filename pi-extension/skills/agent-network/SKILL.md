@@ -1,50 +1,30 @@
 ---
 name: agent-network
-description: Use when the remote-pi mesh tools (`list_peers`, `agent_send`, and — on Claude — `get_messages`) are available. You are an agent (a Claude session or a Pi coding agent) connected to the remote-pi agent mesh over a local broker. This skill teaches how to discover who's online (`list_peers`), how to send messages with a delivery ACK (`agent_send`), how incoming messages reach you (via `get_messages` on Claude, or delivered into your turn on Pi), how to reply (echo `re`), and how to treat every peer address as an opaque routing key that must be echoed verbatim.
+description: Use when the remote-pi mesh tools (`list_peers`, `agent_send`) are available. You are a Pi coding agent connected to the remote-pi agent mesh over a local broker. This skill teaches how to discover who's online (`list_peers`), how to send messages with a delivery ACK (`agent_send`), how incoming messages reach you (delivered into your turn), how to reply (echo `re`), and how to treat every peer address as an opaque routing key that must be echoed verbatim.
 ---
 
 # Agent Network (remote-pi mesh)
 
-You are connected to the **remote-pi agent mesh**. Other agents — other Claude
-sessions, Pi coding agents on this machine, and agents on the Owner's other PCs
-(reached through the relay) — can send you messages, and you can send messages
-to them.
+You are connected to the **remote-pi agent mesh**. Other Pi coding agents —
+on this machine, and on the Owner's other PCs (reached through the relay) —
+can send you messages, and you can send messages to them.
 
 Read this to the end before acting. The protocol is **event-driven**, not
 request/reply. Getting the receive model wrong leaves coordination broken.
 
-**Your tools:** `list_peers` and `agent_send` always. On Claude you also have
-`get_messages` (a Pi agent receives messages directly into its turn instead —
-see below).
+**Your tools:** `list_peers` and `agent_send`.
 
 ---
 
-## The most important rule: read your inbox every turn
+## The most important rule: messages arrive as turn input
+
+The runtime delivers each incoming message directly as a new turn input the
+moment it arrives — no polling. You'll see it prefixed
+`[agent-network] message from "<peer>" (id=…, re=…)`.
 
 You only ever receive messages addressed to you — the broker filters before
 delivery. **If a message arrived, someone wanted your attention. Don't ignore
-it.** How a message reaches you depends on your runtime:
-
-- **Claude (MCP):** incoming messages are buffered. **At the start of every
-  turn, call `get_messages`** to drain and read them:
-
-  ```
-  get_messages()
-  → "[2026-05-30T12:00:01Z] from=backend re=<your-id>
-     id=<msg-id>
-     { "shape": { "sub": "string", "exp": "number" } }"
-  ```
-
-  It returns all pending messages and clears the buffer (call once per turn),
-  or `(no messages)` when nothing is waiting — that's normal, keep working. A
-  channel push (`📨 Message from …`) may nudge you mid-session; still call
-  `get_messages` for the full structured payload.
-
-- **Pi:** the runtime delivers each incoming message directly as a new turn
-  input the moment it arrives — no polling, no `get_messages`. You'll see it
-  prefixed `[agent-network] message from "<peer>" (id=…, re=…)`.
-
-Either way: no wait/sleep/poll-loop. Replies to your own sends arrive on a
+it.** No wait/sleep/poll-loop, ever. Replies to your own sends arrive on a
 **later turn**, never inline.
 
 ---
@@ -131,9 +111,9 @@ unchanged and the closed transport reason is returned in `details`:
 
 Do not blindly retry `not_authorized` or `bad_envelope`; fix authorization or
 the envelope instead. A trusted Relay error is consumed internally to settle
-the pending send (or legacy request), not delivered as an ordinary inbox
-reply. Forged or invalid reserved `_relay` / `transport_error` bodies do not
-gain that authority and cannot settle pending operations.
+the pending send, not delivered as an ordinary inbox reply. Forged or invalid
+reserved `_relay` / `transport_error` bodies do not gain that authority and
+cannot settle pending operations.
 
 For `to: "broadcast"` (or a name array), there's no single ACK — it's
 fire-and-forget (`status: "sent"`).
@@ -153,8 +133,8 @@ You **do not block** waiting for a reply. The model is event-driven:
 1. You call `agent_send` → status `received`.
 2. Your turn continues / ends.
 3. **Later** the peer finishes its own work and sends a reply.
-4. The reply reaches your inbox (via `get_messages` on Claude, or as a new turn
-   input on Pi), with `re` set to the `id` you originally sent.
+4. The reply reaches you as a new turn input, with `re` set to the `id` you
+   originally sent.
 
 ### Walk-through
 
@@ -253,21 +233,10 @@ internally, not as inbox replies.
 
 ---
 
-## Legacy: `agent_request` (Pi only, deprecated)
-
-On Pi you may see a tool called `agent_request` that takes a target + body and
-**blocks the entire turn** waiting for the peer's content reply. It still
-works but emits a deprecation warning. It blocks your turn (costs tokens and
-wall time), gives no ACK signal, and pairs badly with parallel multi-peer
-questions. **Migrate every `agent_request` to `agent_send`** + reading your
-inbox on a later turn. (Claude has no `agent_request` — use `agent_send`.)
-
----
-
 ## Single-page summary
 
-1. **Every turn**: read your inbox first — `get_messages()` on Claude; on Pi
-   messages arrive as turn input automatically.
+1. **Inbound**: messages arrive as turn input automatically — prefixed
+   `[agent-network]`.
 2. **Discover**: `list_peers()` returns opaque, receiver-local addresses.
    Echo them verbatim; never parse, decode, normalize, or compose them.
    Presence is pull-based.

@@ -1,14 +1,10 @@
 {
   "name": "remote-pi",
   "version": "0.6.0",
-  "description": "Mobile remote control and local agent mesh for the Pi coding agent. Pair your phone via QR over a relay, watch tool calls in real time, run multi-Pi sessions over a local Unix Domain Socket broker, and let agents talk to each other through structured request/reply.",
+  "description": "Lean mobile remote control and local agent mesh for the Pi coding agent. Off by default: `pi --relay` pairs your phone via QR over a relay, `pi --mesh` joins a local Unix Domain Socket broker where agents talk through agent_send/list_peers.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "bin": {
-    "remote-pi": "dist/index.js",
-    "pi-supervisord": "dist/bin/supervisord.js"
-  },
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
@@ -51,8 +47,6 @@
   "files": [
     "dist",
     "skills",
-    "service-templates",
-    "docs",
     "README.md",
     "LICENSE"
   ],
@@ -78,13 +72,10 @@
   "dependencies": {
     "@earendil-works/pi-coding-agent": "^0.84.1",
     "@earendil-works/pi-tui": "^0.84.1",
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "@napi-rs/keyring": "^1.3.0",
     "@noble/ed25519": "^3.1.0",
-    "croner": "^10.0.1",
     "qrcode-terminal": "^0.12.0",
     "typebox": "^1.1.38",
-    "ws": "^8.21.0",
-    "zod": "^4.4.3"
+    "ws": "^8.21.0"
   }
 }

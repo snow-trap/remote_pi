@@ -10,10 +10,6 @@ import {
 } from "./bridge.js";
 import { getOrCreateEd25519Keypair } from "../relay/storage.js";
 import type { Ed25519Keypair } from "../relay/crypto.js";
-import {
-  canonicalizeEd25519PublicKey,
-  encodeEd25519PublicKey,
-} from "./encoding.js";
 import type { MeshTopologySnapshot } from "./siblings.js";
 import { ownTopology } from "./topology.js";
 
