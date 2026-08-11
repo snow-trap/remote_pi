@@ -4,7 +4,7 @@ import {
   ed25519Sign,
   generateEd25519Keypair,
   type Ed25519Keypair,
-} from "../pairing/crypto.js";
+} from "../relay/crypto.js";
 import { canonicalBytes } from "./canonical.js";
 import type { MeshClient } from "./client.js";
 import {

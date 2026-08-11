@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { generateEd25519Keypair, ed25519Sign } from "../pairing/crypto.js";
+import { generateEd25519Keypair, ed25519Sign } from "../relay/crypto.js";
 import { canonicalBytes } from "./canonical.js";
 import { verifyEnvelope } from "./verify.js";
 import type { MeshEnvelope } from "./types.js";

@@ -1,4 +1,4 @@
-import { ed25519Verify } from "../pairing/crypto.js";
+import { ed25519Verify } from "../relay/crypto.js";
 import {
   canonicalizeEd25519PublicKey,
   decodeEd25519PublicKey,
