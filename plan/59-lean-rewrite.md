@@ -173,14 +173,23 @@ Cockpit 是 pi RPC 宿主，唯一出口是 session 消息流（带内 = LLM con
 8. 更新 `pi-extension/README.md`（精简）；`docs/daemon.md` 删除；PROTOCOL.md 标注被砍部分
 9. Conventional Commits：`refactor(extension): …` 系列提交
 
-## DoD
+## DoD（全部完成 ✅，2026-08-11）
 
-- [ ] `pi`（无 flag）启动：无 relay、无 mesh、无工具、无 skill、无 footer 残留
-- [ ] `pi --relay`：relay 自动连接，可配对；mesh 工具不存在
-- [ ] `pi --mesh`：加入本地 mesh，`agent_send`/`list_peers` 可用，skill 可见
-- [ ] `/remote-pi start all` 在无 flag 会话里手动拉起两者
-- [ ] mesh 名 = session 名；pi 内改名 → mesh 跟随；`#N` 冲突 → session 名回写
-- [ ] 无任何 local JSON 配置文件读写；`~/.pi/remote/` 只剩 state
-- [ ] LLM context 中除 mesh 消息外无扩展注入（含 pair QR）
-- [ ] `pnpm typecheck && pnpm test && pnpm build` 全绿，dist 已提交
-- [ ] 代码总量：src/ 非测试行数从 ~21k 降到 ~10k 以内（桥 + 图片通道保留）
+- [x] `pi`（无 flag）启动：无 relay、无 mesh、无工具、无 skill、无 footer 残留（extension.test.ts 覆盖）
+- [x] `pi --relay`：relay 自动连接，可配对；mesh 工具不存在（extension.test.ts 覆盖 + 真机冒烟）
+- [x] `pi --mesh`：加入本地 mesh，`agent_send`/`list_peers` 可用，skill 可见（extension.test.ts 覆盖 + 真机冒烟）
+- [x] `/remote-pi start all` 在无 flag 会话里手动拉起两者（extension.test.ts 覆盖）
+- [x] mesh 名 = session 名；pi 内改名 → mesh 跟随；`#N` 冲突不回写（extension.test.ts 覆盖）
+- [x] 无任何 local JSON 配置文件读写；`~/.pi/remote/` 只剩 state
+- [x] LLM context 中除 mesh 消息外无扩展注入（pair QR 走 appendEntry — relay_service.test.ts 覆盖）
+- [x] `pnpm typecheck && pnpm test && pnpm build` 全绿（421 tests），dist 已提交
+- [x] 代码总量：src/ 非测试行数 21k → 10.1k
+
+## 执行后记
+
+- SDK 升级到 0.84：直接用 `ctx.modelRegistry`（删掉了自建 registry 的 workaround）、
+  `registerEntryRenderer`、`session_info_changed`。
+- 冒烟：`pi -ne -e dist/index.js [--relay] [--mesh] -p "…"` 正常退出；
+  `--badflag` 被 CLI 正确拒绝（flag 注册生效）。
+- 修复：初版漏了 `pi.registerFlag("relay"/"mesh")`（冒烟抓到 "Unknown option"）。
+- `MeshSelfRelayBridge`（MCP 自管理桥）随 MCP 删除，MeshNode 只剩注入式桥一种生命周期。

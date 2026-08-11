@@ -61,6 +61,17 @@ const extension = (pi) => {
             return undefined;
         }
     });
+    // Register the CLI flags so the Pi CLI accepts them (an unregistered flag
+    // aborts with "Unknown option") and surfaces values via pi.getFlag. Both
+    // default OFF — a bare `pi` boot leaves this extension fully inert.
+    pi.registerFlag("relay", {
+        type: "boolean",
+        description: "remote-pi: auto-start the relay (phone app channel)",
+    });
+    pi.registerFlag("mesh", {
+        type: "boolean",
+        description: "remote-pi: auto-join the local agent mesh (agent_send/list_peers)",
+    });
     // ── UI helpers ────────────────────────────────────────────────────────────
     /** Prefer the always-fresh session_start ctx over the capturable-stale
      *  command ctx (issue #55). */
