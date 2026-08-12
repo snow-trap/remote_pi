@@ -102,7 +102,7 @@ export class RelayService {
     get currentRelayUrl() { return this.relayUrl; }
     get turnInFlight() { return this.currentTurnId; }
     get working() { return this.myRoomMeta?.working === true; }
-    /** Seed the global-pairings cache from peers.json (footer 🟢/🟡). */
+    /** Seed the global-pairings cache from peers.json (footer relay slot). */
     refreshPairingsCache() {
         void listPeers()
             .then((peers) => {

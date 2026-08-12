@@ -82,7 +82,7 @@ export declare class RelayService {
     get currentRelayUrl(): string | null;
     get turnInFlight(): string | null;
     get working(): boolean;
-    /** Seed the global-pairings cache from peers.json (footer 🟢/🟡). */
+    /** Seed the global-pairings cache from peers.json (footer relay slot). */
     refreshPairingsCache(): void;
     /** `/remote-pi start relay` / auto-start. Connects the WS + auto-listener. */
     start(ctx: Pick<ExtensionContext, "ui" | "cwd">): Promise<void>;

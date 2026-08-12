@@ -31,7 +31,7 @@ describe("updateFooter — footer slots ('local' rendering)", () => {
     };
     updateFooter(ctx, state);
     const sessionSlot = ctx.statusCalls.find((c) => c.key === "remote-pi:session");
-    expect(sessionSlot?.value).toBe("📡 local (3)");
+    expect(sessionSlot?.value).toBe("local (3)");
   });
 
   test("session slot cleared when not joined", () => {
@@ -45,7 +45,44 @@ describe("updateFooter — footer slots ('local' rendering)", () => {
     const ctx = makeMockCtx();
     updateFooter(ctx, { session: "local", peerCount: 1, relayOn: false });
     const sessionSlot = ctx.statusCalls.find((c) => c.key === "remote-pi:session");
-    expect(sessionSlot?.value).toBe("📡 local (1)");
+    expect(sessionSlot?.value).toBe("local (1)");
+  });
+});
+
+describe("updateFooter — relay + peer slots (plain text, no emoji)", () => {
+  test("relay slot is bare 'relay' when on and pairings exist", () => {
+    const ctx = makeMockCtx();
+    updateFooter(ctx, { relayOn: true, hasPairings: true });
+    const relaySlot = ctx.statusCalls.find((c) => c.key === "remote-pi:relay");
+    expect(relaySlot?.value).toBe("relay");
+  });
+
+  test("relay slot spells out the attention state when no pairings yet", () => {
+    const ctx = makeMockCtx();
+    updateFooter(ctx, { relayOn: true, hasPairings: false });
+    const relaySlot = ctx.statusCalls.find((c) => c.key === "remote-pi:relay");
+    expect(relaySlot?.value).toBe("relay: pairing needed");
+  });
+
+  test("relay slot cleared when relay is off", () => {
+    const ctx = makeMockCtx();
+    updateFooter(ctx, { relayOn: false, hasPairings: true });
+    const relaySlot = ctx.statusCalls.find((c) => c.key === "remote-pi:relay");
+    expect(relaySlot?.value).toBeUndefined();
+  });
+
+  test("peer slot prefixes the device shortid with 'dev:'", () => {
+    const ctx = makeMockCtx();
+    updateFooter(ctx, { relayOn: true, devicePaired: "a1b2" });
+    const peerSlot = ctx.statusCalls.find((c) => c.key === "remote-pi:peer-active");
+    expect(peerSlot?.value).toBe("dev: a1b2");
+  });
+
+  test("peer slot cleared when no device is actively connected", () => {
+    const ctx = makeMockCtx();
+    updateFooter(ctx, { relayOn: true });
+    const peerSlot = ctx.statusCalls.find((c) => c.key === "remote-pi:peer-active");
+    expect(peerSlot?.value).toBeUndefined();
   });
 });
 

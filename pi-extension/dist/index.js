@@ -367,8 +367,8 @@ const extension = (pi) => {
         getArgumentCompletions: async (prefix) => relay.shortidCompletions(prefix),
         handler: async (args, ctx) => { lastCtx = ctx; await relay.revoke(args.trim(), ctx); },
     });
-    // Seed the pairings cache so the footer shows 🟢/🟡 the moment the relay
-    // is up (no race with the first refresh).
+    // Seed the pairings cache so the footer relay slot is accurate the
+    // moment the relay is up (no race with the first refresh).
     relay.refreshPairingsCache();
 };
 export default extension;

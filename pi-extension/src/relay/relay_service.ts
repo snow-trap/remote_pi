@@ -188,7 +188,7 @@ export class RelayService {
   get turnInFlight(): string | null { return this.currentTurnId; }
   get working(): boolean { return this.myRoomMeta?.working === true; }
 
-  /** Seed the global-pairings cache from peers.json (footer 🟢/🟡). */
+  /** Seed the global-pairings cache from peers.json (footer relay slot). */
   refreshPairingsCache(): void {
     void listPeers()
       .then((peers) => {

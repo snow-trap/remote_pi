@@ -4,19 +4,19 @@ const K_PEER = "remote-pi:peer-active";
 export function updateFooter(ctx, state) {
     if (state.session) {
         const count = state.peerCount ?? 0;
-        ctx.ui.setStatus(K_SESSION, `📡 ${state.session} (${count})`);
+        ctx.ui.setStatus(K_SESSION, `${state.session} (${count})`);
     }
     else {
         ctx.ui.setStatus(K_SESSION, undefined);
     }
     if (state.relayOn) {
-        ctx.ui.setStatus(K_RELAY, state.hasPairings ? "🟢 relay" : "🟡 relay waiting for pairing");
+        ctx.ui.setStatus(K_RELAY, state.hasPairings ? "relay" : "relay: pairing needed");
     }
     else {
         ctx.ui.setStatus(K_RELAY, undefined);
     }
     if (state.devicePaired) {
-        ctx.ui.setStatus(K_PEER, `📱 ${state.devicePaired}`);
+        ctx.ui.setStatus(K_PEER, `dev: ${state.devicePaired}`);
     }
     else {
         ctx.ui.setStatus(K_PEER, undefined);
