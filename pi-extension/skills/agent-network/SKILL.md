@@ -1,6 +1,6 @@
 ---
 name: agent-network
-description: Use when the remote-pi mesh tools (`list_peers`, `agent_send`) are available. You are a Pi coding agent connected to the remote-pi agent mesh over a local broker. This skill teaches how to discover who's online (`list_peers`), how to send messages with a delivery ACK (`agent_send`), how incoming messages reach you (delivered into your turn), how to reply (echo `re`), and how to treat every peer address as an opaque routing key that must be echoed verbatim.
+description: Agent mesh protocol for Pi coding agents connected over the local remote-pi broker. Teaches peer discovery (`list_peers`), sending messages with a delivery ACK (`agent_send`), how incoming messages arrive (as turn input), how to reply (echo `re`), and how to treat every peer address as an opaque routing key echoed verbatim.
 ---
 
 # Agent Network (remote-pi mesh)
