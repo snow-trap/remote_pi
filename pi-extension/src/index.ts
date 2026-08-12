@@ -306,15 +306,12 @@ const extension: ExtensionFactory = (pi: ExtensionAPI): void => {
   // cron, install) was removed in the lean rewrite.
 
   async function cmdStart(ctx: Pick<ExtensionContext, "ui" | "cwd">, mode?: string): Promise<void> {
-    const wantMesh = mode === "mesh" || mode === "all" || (mode === undefined && flags.mesh);
-    const wantRelay = mode === "relay" || mode === "all" || (mode === undefined && flags.relay);
-    if (!wantMesh && !wantRelay) {
-      ctx.ui.notify(
-        "[remote-pi] Nothing selected. Pass --relay/--mesh at launch, or use /remote-pi start relay|mesh|all.",
-        "info",
-      );
-      return;
-    }
+    // Bare `/remote-pi` connects: respects the launch flags when given,
+    // defaults to BOTH when launched flagless (typing the command is already
+    // explicit intent — the off-by-default guarantee lives at auto-start).
+    const noFlags = !flags.relay && !flags.mesh;
+    const wantMesh = mode === "mesh" || mode === "all" || (mode === undefined && (flags.mesh || noFlags));
+    const wantRelay = mode === "relay" || mode === "all" || (mode === undefined && (flags.relay || noFlags));
     if (wantMesh) {
       enableMeshSurface();
       await mesh.join(ctx);
@@ -341,24 +338,26 @@ const extension: ExtensionFactory = (pi: ExtensionAPI): void => {
   }
 
   pi.registerCommand("remote-pi", {
-    description: "remote-pi: start [relay|mesh|all] · stop · status · pair · devices · revoke",
+    description: "remote-pi: [relay|mesh|all] · stop · status · pair · devices · revoke",
     getArgumentCompletions: async (prefix) => {
       if (prefix.startsWith("revoke ") || prefix === "revoke") {
         const shortPrefix = prefix === "revoke" ? "" : prefix.slice("revoke ".length);
         const completions = await relay.shortidCompletions(shortPrefix);
         return completions.map((c) => ({ value: `revoke ${c.value}`, label: c.label }));
       }
-      return ["start", "start relay", "start mesh", "start all", "stop", "status", "pair", "devices", "revoke"]
+      return ["relay", "mesh", "all", "stop", "status", "pair", "devices", "revoke"]
         .filter((o) => o.startsWith(prefix))
         .map((o) => ({ value: o, label: o }));
     },
     handler: async (args, ctx) => {
       lastCtx = ctx;
       const sub = args.trim();
-      if      (sub === "" || sub === "start")          { await cmdStart(ctx); }
+      if      (sub === "" || sub === "all")            { await cmdStart(ctx, sub === "all" ? "all" : undefined); }
+      else if (sub === "relay" || sub === "mesh")     { await cmdStart(ctx, sub); }
+      // Hidden aliases for muscle memory from the pre-lean surface.
+      else if (sub === "start" || sub === "start all") { await cmdStart(ctx, "all"); }
       else if (sub === "start relay")                  { await cmdStart(ctx, "relay"); }
       else if (sub === "start mesh")                   { await cmdStart(ctx, "mesh"); }
-      else if (sub === "start all")                    { await cmdStart(ctx, "all"); }
       else if (sub === "stop")                         { await cmdStop(ctx); }
       else if (sub === "status")                       { cmdStatus(ctx); }
       else if (sub === "pair" || sub.startsWith("pair "))   { await relay.pair(ctx, sub.slice("pair".length).trim()); }
@@ -368,7 +367,8 @@ const extension: ExtensionFactory = (pi: ExtensionAPI): void => {
     },
   });
 
-  pi.registerCommand("remote-pi start",  { description: "Start per flags, or force: start relay|mesh|all", handler: async (args, ctx) => { lastCtx = ctx; const m = args.trim(); await cmdStart(ctx, m === "relay" || m === "mesh" || m === "all" ? m : undefined); } });
+  pi.registerCommand("remote-pi relay",  { description: "Start the relay (phone app channel)", handler: async (_, ctx) => { lastCtx = ctx; await cmdStart(ctx, "relay"); } });
+  pi.registerCommand("remote-pi mesh",   { description: "Join the local agent mesh", handler: async (_, ctx) => { lastCtx = ctx; await cmdStart(ctx, "mesh"); } });
   pi.registerCommand("remote-pi stop",   { description: "Stop everything (leave local mesh + disconnect relay)", handler: async (_, ctx) => { lastCtx = ctx; await cmdStop(ctx); } });
   pi.registerCommand("remote-pi status", { description: "Show local mesh + relay status", handler: async (_, ctx) => { lastCtx = ctx; cmdStatus(ctx); } });
   pi.registerCommand("remote-pi pair",   { description: "Show a QR code to pair a new mobile device (optional: --ttl <seconds>)", handler: async (args, ctx) => { lastCtx = ctx; await relay.pair(ctx, args.trim()); } });

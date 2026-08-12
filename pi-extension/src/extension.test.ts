@@ -157,16 +157,24 @@ describe("off by default (no flags)", () => {
     expect(toolsHarness.register).not.toHaveBeenCalled();
   });
 
-  test("bare /remote-pi with no flags does not connect — points at the flags", async () => {
+  test("bare /remote-pi with no flags connects BOTH (typing it is explicit intent)", async () => {
     const { pi, run } = makePi({});
     extension(pi as never);
-    const ctx = makeCtx();
-    await run("remote-pi", "", ctx);
+    await run("remote-pi", "");
     const relay = relayHarness.instances[0]!;
     const mesh = meshHarness.instances[0]!;
+    expect(relay.start).toHaveBeenCalledTimes(1);
+    expect(mesh.join).toHaveBeenCalledTimes(1);
+  });
+
+  test("bare /remote-pi respects the launch flags when given", async () => {
+    const { pi, run } = makePi({ mesh: true });
+    extension(pi as never);
+    await run("remote-pi", "");
+    const relay = relayHarness.instances[0]!;
+    const mesh = meshHarness.instances[0]!;
+    expect(mesh.join).toHaveBeenCalledTimes(1);
     expect(relay.start).not.toHaveBeenCalled();
-    expect(mesh.join).not.toHaveBeenCalled();
-    expect(ctx.ui.notify).toHaveBeenCalledWith(expect.stringContaining("--relay"), "info");
   });
 });
 
@@ -217,10 +225,10 @@ describe("flag-gated auto-start", () => {
 });
 
 describe("manual commands", () => {
-  test("/remote-pi start all starts both services regardless of flags", async () => {
+  test("/remote-pi all starts both services regardless of flags", async () => {
     const { pi, run } = makePi({});
     extension(pi as never);
-    await run("remote-pi", "start all");
+    await run("remote-pi", "all");
     expect(meshHarness.instances[0]!.join).toHaveBeenCalledTimes(1);
     expect(relayHarness.instances[0]!.start).toHaveBeenCalledTimes(1);
     // Manual mesh start also deploys the surface (skill + tools).
@@ -228,12 +236,20 @@ describe("manual commands", () => {
     expect(toolsHarness.register).toHaveBeenCalledTimes(1);
   });
 
-  test("/remote-pi start relay starts only the relay", async () => {
+  test("/remote-pi relay starts only the relay", async () => {
     const { pi, run } = makePi({});
     extension(pi as never);
-    await run("remote-pi", "start relay");
+    await run("remote-pi", "relay");
     expect(relayHarness.instances[0]!.start).toHaveBeenCalledTimes(1);
     expect(meshHarness.instances[0]!.join).not.toHaveBeenCalled();
+  });
+
+  test("legacy 'start <mode>' aliases still work", async () => {
+    const { pi, run } = makePi({});
+    extension(pi as never);
+    await run("remote-pi", "start mesh");
+    expect(meshHarness.instances[0]!.join).toHaveBeenCalledTimes(1);
+    expect(relayHarness.instances[0]!.start).not.toHaveBeenCalled();
   });
 
   test("/remote-pi stop tears both down", async () => {

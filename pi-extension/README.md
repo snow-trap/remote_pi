@@ -41,15 +41,15 @@ pi                  # neither — the extension is fully inert
 or at runtime, from any Pi session:
 
 ```text
-/remote-pi start relay      # just the relay
-/remote-pi start mesh       # just the mesh
-/remote-pi start all        # both
-/remote-pi stop             # tear everything down
-/remote-pi status           # two-line state snapshot
+/remote-pi relay          # just the relay
+/remote-pi mesh           # just the mesh
+/remote-pi                # connect — per launch flags, or BOTH when flagless
+/remote-pi stop           # tear everything down
+/remote-pi status         # two-line state snapshot
 ```
 
-With no flags and no manual `start`, remote-pi does **nothing**: no sockets,
-no WebSocket, no tools, no skill, no footer — zero footprint.
+With no flags and no manual `/remote-pi`, the extension does **nothing**: no
+sockets, no WebSocket, no tools, no skill, no footer — zero footprint.
 
 ## The mesh name is the session name
 
